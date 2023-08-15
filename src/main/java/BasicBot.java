@@ -2,7 +2,7 @@ public class BasicBot extends BotTemplate<Integer>{
     final int[] ints = {3, 2, 4, 1, 5, 0, 6};
 
     @Override
-    Integer utility(Game g, int depthRemaining) {
+    Integer utility(Game g, int depthRemaining, int currentDepth) {
         GameResult result = g.getResult();
         if(result == GameResult.IN_PROGRESS || result == GameResult.DRAW)
             return 0;
@@ -13,12 +13,12 @@ public class BasicBot extends BotTemplate<Integer>{
     }
 
     @Override
-    int[] iterationOrder() {
+    int[] iterationOrder(Game ignore) {
         return ints;
     }
 
     @Override
-    int getMaxDepth() {
-        return 9;
+    int getMaxDepth(Game ignored) {
+        return 10;
     }
 }
