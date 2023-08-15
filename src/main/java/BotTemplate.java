@@ -1,4 +1,6 @@
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 public abstract class BotTemplate<T extends Comparable<T>> implements Player {
     private record MoveWithValue<T>(T value, int index) { }
@@ -13,10 +15,9 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
     abstract T utility(Game g, int depthRemaining, int currentDepth);
 
     /**
-     * @param g game state
      * @return A permutation of column indices; the order in which the search will check. Must include all columns
      */
-    abstract int[] iterationOrder(Game g);
+    abstract LinkedList<Integer> defaultIterationOrder();
 
     /**
      * @param g game state
@@ -25,15 +26,28 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
     abstract int getMaxDepth(Game g);
 
     HashMap<Game, T> cache;
+    int[] killerHeuristic;
 
     private int estimateCapacity(int bound){
         return 1 << (bound * 7 / 8);
+    }
+
+    private Iterable<Integer> getIterationOrder(int depthRemaining){
+        if(killerHeuristic[depthRemaining] == -1)
+            return defaultIterationOrder();
+        else{
+            LinkedList<Integer> d = new LinkedList<>(defaultIterationOrder());
+            d.addFirst(killerHeuristic[depthRemaining]);
+            return d;
+        }
     }
 
     @Override
     public int getMove(Game state){
         int depth = getMaxDepth(state);
         cache = new HashMap<>(estimateCapacity(depth));
+        killerHeuristic = new int[depth + 1];
+        Arrays.fill(killerHeuristic, -1);
         MoveWithValue<T> bestMove = miniMax(state, null, null, depth, 0);
         return bestMove.index;
     }
@@ -50,7 +64,7 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
 
         MoveWithValue<T> bestMove = null;
         if(g.isFirstPlayersMove()){
-            for (int index: iterationOrder(g)) {
+            for (int index: getIterationOrder(maxDepth)) {
                 Game successor = g.playMove(index);
                 if(successor == null)
                     continue;
@@ -59,12 +73,15 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
                     bestMove = new MoveWithValue<>(bestNextMove.value, index);
                 if(alpha == null || bestMove.value.compareTo(alpha) > 0)
                     alpha = bestMove.value;
-                if(beta != null && bestMove.value.compareTo(beta) >= 0)
+                if(beta != null && bestMove.value.compareTo(beta) >= 0){
+                    killerHeuristic[maxDepth] = index;
                     break;
+                }
+
             }
         }
         else {
-            for (int index: iterationOrder(g)) {
+            for (int index: getIterationOrder(maxDepth)) {
                 Game successor = g.playMove(index);
                 if(successor == null)
                     continue;
@@ -73,8 +90,10 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
                     bestMove = new MoveWithValue<>(bestNextMove.value, index);
                 if(beta == null || bestMove.value.compareTo(beta) < 0)
                     beta= bestMove.value;
-                if(alpha != null && bestMove.value.compareTo(alpha) <= 0)
+                if(alpha != null && bestMove.value.compareTo(alpha) <= 0) {
+                    killerHeuristic[maxDepth] = index;
                     break;
+                }
             }
         }
 

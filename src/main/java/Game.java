@@ -98,7 +98,7 @@ public class Game {
 
         //UP RIGHT
         int[] upRight = {1, 1};
-        for (int i = 0; i < WIDTH + HEIGHT - 1; i++) {
+        for (int i = 0; i < WIDTH + HEIGHT; i++) {
             int[] position = {(i < HEIGHT)? i:0, (i > HEIGHT)? i-HEIGHT:0};
             GameResult r = checkForWinOnRay(position, upRight);
             if(r != null) return result = r;
@@ -106,7 +106,7 @@ public class Game {
 
         //UP LEFT
         int[] upLeft = {1, -1};
-        for (int i = 0; i < WIDTH + HEIGHT - 1; i++) {
+        for (int i = 0; i < WIDTH + HEIGHT; i++) {
             int[] position = {(i < HEIGHT)? i:0, (i > HEIGHT)? i-HEIGHT-1:WIDTH-1};
             GameResult r = checkForWinOnRay(position, upLeft);
             if (r != null) return result = r;
@@ -167,9 +167,9 @@ public class Game {
 
     @Override
     public boolean equals(Object o){
-        if(!(o instanceof  Game))
+        if(!(o instanceof Game other))
             return false;
-        return stringEncoding().equals(((Game) o).stringEncoding());
+        return other.stringEncoding().equals(stringEncoding());
     }
 
     private String stringEncoding(){
@@ -199,7 +199,7 @@ public class Game {
                 else{
                     state = (state == CellState.RED)? CellState.YELLOW:CellState.RED;
                     builder.append(runningCount);
-                    runningCount = 0;
+                    runningCount = 1;
                 }
             }
             if(runningCount != 0)

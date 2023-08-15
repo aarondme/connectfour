@@ -1,5 +1,8 @@
+import java.util.Arrays;
+import java.util.LinkedList;
+
 public class BasicBot extends BotTemplate<Integer>{
-    final int[] ints = {3, 2, 4, 1, 5, 0, 6};
+    final LinkedList<Integer> ints = new LinkedList<>(Arrays.asList(3, 2, 4, 1, 5, 0, 6));
 
     @Override
     Integer utility(Game g, int depthRemaining, int currentDepth) {
@@ -13,12 +16,12 @@ public class BasicBot extends BotTemplate<Integer>{
     }
 
     @Override
-    int[] iterationOrder(Game ignore) {
+    LinkedList<Integer> defaultIterationOrder() {
         return ints;
     }
 
     @Override
     int getMaxDepth(Game ignored) {
-        return 10;
+        return 13;
     }
 }
