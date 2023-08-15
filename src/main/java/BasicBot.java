@@ -19,6 +19,6 @@ public class BasicBot extends BotTemplate<Integer>{
 
     @Override
     int getMaxDepth() {
-        return 8;
+        return 9;
     }
 }
