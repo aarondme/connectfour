@@ -39,13 +39,13 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
     }
 
     MoveWithValue<T> miniMax(Game g, T alpha,T beta, int maxDepth, int currentDepth){
+        if(cache.containsKey(g)){
+            return new MoveWithValue<>(cache.get(g), -1);
+        }
         if(maxDepth == 0 || g.isTerminal()){
             T util = utility(g, maxDepth, currentDepth);
             cache.put(g, util);
             return new MoveWithValue<>(util, -1);
-        }
-        if(cache.containsKey(g)){
-            return new MoveWithValue<>(cache.get(g), -1);
         }
 
         MoveWithValue<T> bestMove = null;
@@ -57,10 +57,10 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
                 MoveWithValue<T> bestNextMove = miniMax(successor, alpha, beta, maxDepth - 1, currentDepth + 1);
                 if(bestMove == null || bestMove.value.compareTo(bestNextMove.value) < 0)
                     bestMove = new MoveWithValue<>(bestNextMove.value, index);
+                if(alpha == null || bestMove.value.compareTo(alpha) > 0)
+                    alpha = bestMove.value;
                 if(beta != null && bestMove.value.compareTo(beta) >= 0)
                     break;
-                if(alpha == null || bestMove.value.compareTo(alpha) < 0)
-                    alpha = bestMove.value;
             }
         }
         else {
@@ -68,13 +68,13 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
                 Game successor = g.playMove(index);
                 if(successor == null)
                     continue;
-                MoveWithValue<T> nextValue = miniMax(successor, alpha, beta, maxDepth - 1, currentDepth + 1);
-                if(bestMove == null || bestMove.value.compareTo(nextValue.value) > 0)
-                    bestMove = new MoveWithValue<>(nextValue.value, index);
+                MoveWithValue<T> bestNextMove = miniMax(successor, alpha, beta, maxDepth - 1, currentDepth + 1);
+                if(bestMove == null || bestMove.value.compareTo(bestNextMove.value) > 0)
+                    bestMove = new MoveWithValue<>(bestNextMove.value, index);
+                if(beta == null || bestMove.value.compareTo(beta) < 0)
+                    beta= bestMove.value;
                 if(alpha != null && bestMove.value.compareTo(alpha) <= 0)
                     break;
-                if(beta == null || bestMove.value.compareTo(beta) > 0)
-                    beta= bestMove.value;
             }
         }
 

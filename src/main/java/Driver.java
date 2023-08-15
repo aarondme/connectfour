@@ -1,8 +1,8 @@
 public class Driver {
 
     public static void main(String[] args) {
-        Player playerOne = new HumanPlayer();
-        Player playerTwo = new BasicBot();
+        Player playerOne = new BasicBot();
+        Player playerTwo = new HumanPlayer();
         Game g = new Game();
 
         while (!g.isTerminal()){

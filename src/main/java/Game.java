@@ -194,8 +194,6 @@ public class Game {
                 if(state == board[i][j])
                     runningCount++;
                 else if(board[i][j] == CellState.EMPTY){
-                    builder.append(runningCount);
-                    runningCount = 0;
                     break;
                 }
                 else{
