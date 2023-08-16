@@ -33,7 +33,7 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
     int[] killerHeuristic;
 
     private int estimateCapacity(int bound){
-        return 1 << (bound * 7 / 8);
+        return 1 << Math.min(bound, 30);
     }
 
 
