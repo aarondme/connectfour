@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 
@@ -16,8 +17,22 @@ public class BasicBot extends BotTemplate<Integer>{
     }
 
     @Override
-    LinkedList<Integer> defaultIterationOrder() {
-        return ints;
+    Iterable<GameWithIndex> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic) {
+        Game next;
+        ArrayList<GameWithIndex> out = new ArrayList<>();
+        if(killerHeuristic >= 0){
+            next = g.playMove(killerHeuristic);
+            if(next != null)
+                out.add(new GameWithIndex(next, killerHeuristic));
+        }
+        for (int i: ints) {
+            if(i == killerHeuristic)
+                continue;
+            next = g.playMove(i);
+            if(next != null)
+                out.add(new GameWithIndex(next, i));
+        }
+        return out;
     }
 
     @Override

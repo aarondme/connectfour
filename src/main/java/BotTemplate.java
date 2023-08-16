@@ -1,9 +1,9 @@
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 
 public abstract class BotTemplate<T extends Comparable<T>> implements Player {
     private record MoveWithValue<T>(T value, int index) { }
+    record GameWithIndex(Game g, int index){}
 
     /**
      * A function to determine how good a board state is.
@@ -15,9 +15,13 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
     abstract T utility(Game g, int depthRemaining, int currentDepth);
 
     /**
-     * @return A permutation of column indices; the order in which the search will check. Must include all columns
+     * @param g The initial game state
+     * @param depthRemaining the depth remaining in minimax search
+     * @param currentDepth the current depth of minimax search
+     * @param killerHeuristic the result of the "killer heuristic". -1 if there is no suggestion, It is recommended to put this child first (if it exists)
+     * @return The children nodes to search, must be a nonempty/non-null list with all objects included have a non-null game.
      */
-    abstract LinkedList<Integer> defaultIterationOrder();
+    abstract Iterable<GameWithIndex> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic);
 
     /**
      * @param g game state
@@ -32,15 +36,6 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
         return 1 << (bound * 7 / 8);
     }
 
-    private Iterable<Integer> getIterationOrder(int depthRemaining){
-        if(killerHeuristic[depthRemaining] == -1)
-            return defaultIterationOrder();
-        else{
-            LinkedList<Integer> d = new LinkedList<>(defaultIterationOrder());
-            d.addFirst(killerHeuristic[depthRemaining]);
-            return d;
-        }
-    }
 
     @Override
     public int getMove(Game state){
@@ -64,34 +59,28 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
 
         MoveWithValue<T> bestMove = null;
         if(g.isFirstPlayersMove()){
-            for (int index: getIterationOrder(maxDepth)) {
-                Game successor = g.playMove(index);
-                if(successor == null)
-                    continue;
-                MoveWithValue<T> bestNextMove = miniMax(successor, alpha, beta, maxDepth - 1, currentDepth + 1);
+            for (GameWithIndex successor: successors(g, maxDepth, currentDepth, killerHeuristic[maxDepth])) {
+                MoveWithValue<T> bestNextMove = miniMax(successor.g, alpha, beta, maxDepth - 1, currentDepth + 1);
                 if(bestMove == null || bestMove.value.compareTo(bestNextMove.value) < 0)
-                    bestMove = new MoveWithValue<>(bestNextMove.value, index);
+                    bestMove = new MoveWithValue<>(bestNextMove.value, successor.index);
                 if(alpha == null || bestMove.value.compareTo(alpha) > 0)
                     alpha = bestMove.value;
                 if(beta != null && bestMove.value.compareTo(beta) >= 0){
-                    killerHeuristic[maxDepth] = index;
+                    killerHeuristic[maxDepth] = successor.index;
                     break;
                 }
 
             }
         }
         else {
-            for (int index: getIterationOrder(maxDepth)) {
-                Game successor = g.playMove(index);
-                if(successor == null)
-                    continue;
-                MoveWithValue<T> bestNextMove = miniMax(successor, alpha, beta, maxDepth - 1, currentDepth + 1);
+            for (GameWithIndex successor: successors(g, maxDepth, currentDepth, killerHeuristic[maxDepth])) {
+                MoveWithValue<T> bestNextMove = miniMax(successor.g, alpha, beta, maxDepth - 1, currentDepth + 1);
                 if(bestMove == null || bestMove.value.compareTo(bestNextMove.value) > 0)
-                    bestMove = new MoveWithValue<>(bestNextMove.value, index);
+                    bestMove = new MoveWithValue<>(bestNextMove.value, successor.index);
                 if(beta == null || bestMove.value.compareTo(beta) < 0)
                     beta= bestMove.value;
                 if(alpha != null && bestMove.value.compareTo(alpha) <= 0) {
-                    killerHeuristic[maxDepth] = index;
+                    killerHeuristic[maxDepth] = successor.index;
                     break;
                 }
             }
