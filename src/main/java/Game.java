@@ -5,8 +5,8 @@ public class Game {
     private static final int ENCODED_YELLOW = 2;
     private static final int ENCODED_RED = 3;
     private static final int ENCODED_BLANK = 0;
-    private GameResult result;
-    private String encoding;
+    private final GameResult result;
+    private final String encoding;
 
     Game(){
         result = GameResult.IN_PROGRESS;
@@ -32,7 +32,7 @@ public class Game {
 
     private Game(Game g, int moveIndex){
         int heightToSet = -1;
-        CellState s = getCellState(g.isFirstPlayersMove());
+        CellState s = getPlayerCell(g.isFirstPlayersMove());
         for (int i = 0; i < HEIGHT; i++) {
             if(g.getCell(moveIndex, i) == CellState.EMPTY){
                 heightToSet = i;
@@ -42,14 +42,11 @@ public class Game {
         String tempEncoding = g.encoding;
         tempEncoding = setCell(moveIndex, heightToSet, s, tempEncoding);
         tempEncoding = flipTurn(tempEncoding);
-        result = null;
         encoding = tempEncoding;
+        result = checkForWinInvolving(moveIndex, heightToSet);
     }
 
-
     public boolean isTerminal() {
-        if(result == null)
-            getResult();
         return result != GameResult.IN_PROGRESS;
     }
 
@@ -77,7 +74,7 @@ public class Game {
         int charIndex = index >> 3; //Get character in which the cell is stored
         int indexInChar = index & 0b111; //Get the index in the character where the cell is stored
         int shiftAmount = (7 - indexInChar) << 1;
-        int c = stringEncoding().charAt(charIndex);
+        int c = encoding.charAt(charIndex);
         c = (c >> shiftAmount) & 0b11; //Shift the indices to the 0th and 1st bits, and extract them
         if(c == ENCODED_YELLOW)
             return CellState.YELLOW;
@@ -112,23 +109,22 @@ public class Game {
         return x * HEIGHT + y + 1;
     }
 
-    private CellState getCellState(boolean isFirstPlayerMove) {
+    private CellState getPlayerCell(boolean isFirstPlayerMove) {
         if(isFirstPlayerMove)
             return CellState.RED;
         else
             return CellState.YELLOW;
     }
 
-    public GameResult getResult() {
-        if(result != null)
-            return result;
+    private GameResult computeResult(){
+        //Could be useful later for starting with partially filled boards
 
         //ROWS
         int[] horizontal = {1, 0};
         for (int i = 0; i < HEIGHT; i++) {
             int[] position = {0, i};
             GameResult r = checkForWinOnRay(position, horizontal);
-            if(r != null) return result = r;
+            if(r != null) return r;
         }
 
         //COLUMNS
@@ -136,7 +132,7 @@ public class Game {
         for (int i = 0; i < WIDTH; i++) {
             int[] position = {i, 0};
             GameResult r = checkForWinOnRay(position, vertical);
-            if(r != null) return result = r;
+            if(r != null) return r;
         }
 
         //UP RIGHT
@@ -144,7 +140,7 @@ public class Game {
         for (int i = 0; i < WIDTH + HEIGHT; i++) {
             int[] position = {(i > HEIGHT)? i-HEIGHT:0, (i < HEIGHT)? i:0};
             GameResult r = checkForWinOnRay(position, upRight);
-            if(r != null) return result = r;
+            if(r != null) return r;
         }
 
         //UP LEFT
@@ -152,15 +148,46 @@ public class Game {
         for (int i = 0; i < WIDTH + HEIGHT; i++) {
             int[] position = {(i > HEIGHT)? i-HEIGHT-1:WIDTH-1, (i < HEIGHT)? i:0};
             GameResult r = checkForWinOnRay(position, upLeft);
-            if (r != null) return result = r;
+            if (r != null) return r;
         }
 
         for (int i = 0; i < WIDTH; i++) {
             if(getCell(i, HEIGHT-1) == CellState.EMPTY)
-                return result = GameResult.IN_PROGRESS;
+                return GameResult.IN_PROGRESS;
         }
 
-        return result = GameResult.DRAW;
+        return GameResult.DRAW;
+    }
+
+    public GameResult getResult() {
+        return result;
+    }
+
+    private GameResult checkForWinInvolving(int moveIndex, int heightToSet) {
+        GameResult r;
+        //HORIZONTAL
+        if((r = checkForWinOnRay(new int[]{0, heightToSet}, new int[]{1, 0})) != null)
+            return r;
+        //VERTICAL
+        if(heightToSet >= WIN_LENGTH && (r = checkForWinOnRay(new int[]{moveIndex, 0}, new int[]{0, 1})) != null)
+            return r;
+
+        //UP RIGHT
+        int min = Math.min(moveIndex, heightToSet);
+        if((r = checkForWinOnRay(new int[]{moveIndex - min, heightToSet - min}, new int[]{1, 1})) != null)
+            return r;
+
+        //UP LEFT
+        min = Math.min(WIDTH - moveIndex - 1, heightToSet);
+        if((r = checkForWinOnRay(new int[]{moveIndex + min, heightToSet - min}, new int[]{-1, 1})) != null)
+            return r;
+
+        for (int i = 0; i < WIDTH; i++) {
+            if(getCell(i, HEIGHT-1) == CellState.EMPTY)
+                return GameResult.IN_PROGRESS;
+        }
+
+        return GameResult.DRAW;
     }
 
     private GameResult checkForWinOnRay(int[] start, int[] direction) {
@@ -205,53 +232,14 @@ public class Game {
 
     @Override
     public int hashCode(){
-        return stringEncoding().hashCode();
+        return encoding.hashCode();
     }
 
     @Override
     public boolean equals(Object o){
         if(!(o instanceof Game other))
             return false;
-        return other.stringEncoding().equals(stringEncoding());
-    }
-
-    private String stringEncoding(){
-        if(encoding != null)
-            return encoding;
-
-        StringBuilder builder = new StringBuilder();
-        int numValues = 1;
-        int valueToAdd = 0;
-        if(isFirstPlayersMove()){
-            valueToAdd += ENCODED_RED;
-        }
-        else{
-            valueToAdd += ENCODED_YELLOW;
-        }
-
-        for (int j = 0; j < WIDTH; j++){
-            for (int i = 0; i < HEIGHT; i++) {
-                valueToAdd = valueToAdd << 2;
-                CellState nextState = getCell(j, i);
-                if(nextState == CellState.RED){
-                    valueToAdd += ENCODED_RED;
-                }
-                else if(nextState == CellState.YELLOW){
-                    valueToAdd += ENCODED_YELLOW;
-                }
-                numValues++;
-                if(numValues == 8){
-                    numValues = 0;
-                    builder.append((char) valueToAdd);
-                    valueToAdd = 0;
-                }
-            }
-        }
-        if(numValues > 0){
-            builder.append((char) valueToAdd);
-        }
-
-        return encoding = builder.toString();
+        return other.encoding.equals(encoding);
     }
 
     @Override
