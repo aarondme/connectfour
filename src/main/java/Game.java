@@ -1,32 +1,49 @@
-import java.util.Arrays;
-
 public class Game {
     private static final int WIN_LENGTH = 4;
     private final int WIDTH = 7;
     private final int HEIGHT = 6;
+    private static final int ENCODED_YELLOW = 2;
+    private static final int ENCODED_RED = 3;
+    private static final int ENCODED_BLANK = 0;
     private GameResult result;
-    private boolean isFirstPlayerMove;
     private String encoding;
-    private final CellState[][] board;
 
     Game(){
-        board = new CellState[HEIGHT][WIDTH];
-        result = null;
-        encoding = null;
-        isFirstPlayerMove = true;
-        for (CellState[] cellStates : board) {
-            Arrays.fill(cellStates, CellState.EMPTY);
+        result = GameResult.IN_PROGRESS;
+        encoding = defaultEncoding();
+    }
+
+    private String defaultEncoding() {
+        StringBuilder builder = new StringBuilder();
+        int first = ENCODED_RED << 14;
+        builder.append((char) first);
+        int numCells = WIDTH * HEIGHT - 7;
+        while (numCells > 0){
+            builder.append((char) 0);
+            numCells -= 8;
         }
+        return builder.toString();
     }
 
     Game(Game g){
-        board = new CellState[g.board.length][g.board[0].length];
-        for (int i = 0; i < board.length; i++) {
-            System.arraycopy(g.board[i], 0, board[i], 0, board[i].length);
-        }
-        isFirstPlayerMove = g.isFirstPlayerMove;
         result = g.result;
         encoding = g.encoding;
+    }
+
+    private Game(Game g, int moveIndex){
+        int heightToSet = -1;
+        CellState s = getCellState(g.isFirstPlayersMove());
+        for (int i = 0; i < HEIGHT; i++) {
+            if(g.getCell(moveIndex, i) == CellState.EMPTY){
+                heightToSet = i;
+                break;
+            }
+        }
+        String tempEncoding = g.encoding;
+        tempEncoding = setCell(moveIndex, heightToSet, s, tempEncoding);
+        tempEncoding = flipTurn(tempEncoding);
+        result = null;
+        encoding = tempEncoding;
     }
 
 
@@ -37,7 +54,8 @@ public class Game {
     }
 
     public boolean isFirstPlayersMove() {
-        return isFirstPlayerMove;
+        int first = encoding.charAt(0);
+        return (first & (1 << 14)) > 0;
     }
 
     public Game playMove(int moveIndex) {
@@ -45,28 +63,53 @@ public class Game {
             return null;
         if(moveIndex < 0 || moveIndex >= WIDTH)
             return null;
-        if(board[HEIGHT - 1][moveIndex] != CellState.EMPTY)
+        if(getCell(moveIndex, HEIGHT-1) != CellState.EMPTY)
             return null;
 
-        Game nextPos = new Game(this);
-        for (int i = 0; i < HEIGHT; i++) {
-            if(nextPos.board[i][moveIndex] == CellState.EMPTY){
-                nextPos.board[i][moveIndex] = getCellState(isFirstPlayersMove());
-                break;
-            }
-        }
-
-        nextPos.isFirstPlayerMove = !nextPos.isFirstPlayerMove;
-        nextPos.result = null;
-        nextPos.encoding = null;
-        return nextPos;
+       return new Game(this, moveIndex);
     }
 
     /**
      * Gets the cell at (x, y) where (0, 0) is the bottom left corner
      * **/
     public CellState getCell(int x, int y){
-        return board[y][x];
+        int index = toBitmaskIndex(x, y);
+        int charIndex = index >> 3; //Get character in which the cell is stored
+        int indexInChar = index & 0b111; //Get the index in the character where the cell is stored
+        int shiftAmount = (7 - indexInChar) << 1;
+        int c = stringEncoding().charAt(charIndex);
+        c = (c >> shiftAmount) & 0b11; //Shift the indices to the 0th and 1st bits, and extract them
+        if(c == ENCODED_YELLOW)
+            return CellState.YELLOW;
+        else if(c == ENCODED_RED)
+            return CellState.RED;
+        return CellState.EMPTY;
+    }
+
+    private String setCell(int x, int y, CellState state, String prevMask){
+        int index = toBitmaskIndex(x, y);
+        int charIndex = index >> 3; //Get character in which the cell is stored
+        int indexInChar = index & 0b111; //Get the index in the character where the cell is stored
+        int c = prevMask.charAt(charIndex);
+        int shiftAmount = (7 - indexInChar) << 1;
+        c = (0b11 << shiftAmount) | c; //Set the corresponding indices to 0b11
+        int valToSet = (state == CellState.EMPTY)? ENCODED_BLANK: (state == CellState.RED)? ENCODED_RED:ENCODED_YELLOW;
+        valToSet = valToSet ^ 0b11;
+        c = (valToSet << shiftAmount) ^ c; //XOR with the opposite of the values we want to set it to.
+
+        return prevMask.substring(0, charIndex) +
+                (char) c +
+                prevMask.substring(charIndex + 1);
+    }
+
+    private String flipTurn(String prevMask){
+        int c = prevMask.charAt(0);
+        c = (1 << 14) ^ c;
+        return (char) c + prevMask.substring(1);
+    }
+
+    private int toBitmaskIndex(int x, int y){
+        return x * HEIGHT + y + 1;
     }
 
     private CellState getCellState(boolean isFirstPlayerMove) {
@@ -81,17 +124,17 @@ public class Game {
             return result;
 
         //ROWS
-        int[] horizontal = {0, 1};
+        int[] horizontal = {1, 0};
         for (int i = 0; i < HEIGHT; i++) {
-            int[] position = {i, 0};
+            int[] position = {0, i};
             GameResult r = checkForWinOnRay(position, horizontal);
             if(r != null) return result = r;
         }
 
         //COLUMNS
-        int[] vertical = {1, 0};
+        int[] vertical = {0, 1};
         for (int i = 0; i < WIDTH; i++) {
-            int[] position = {0, i};
+            int[] position = {i, 0};
             GameResult r = checkForWinOnRay(position, vertical);
             if(r != null) return result = r;
         }
@@ -99,21 +142,21 @@ public class Game {
         //UP RIGHT
         int[] upRight = {1, 1};
         for (int i = 0; i < WIDTH + HEIGHT; i++) {
-            int[] position = {(i < HEIGHT)? i:0, (i > HEIGHT)? i-HEIGHT:0};
+            int[] position = {(i > HEIGHT)? i-HEIGHT:0, (i < HEIGHT)? i:0};
             GameResult r = checkForWinOnRay(position, upRight);
             if(r != null) return result = r;
         }
 
         //UP LEFT
-        int[] upLeft = {1, -1};
+        int[] upLeft = {-1, 1};
         for (int i = 0; i < WIDTH + HEIGHT; i++) {
-            int[] position = {(i < HEIGHT)? i:0, (i > HEIGHT)? i-HEIGHT-1:WIDTH-1};
+            int[] position = {(i > HEIGHT)? i-HEIGHT-1:WIDTH-1, (i < HEIGHT)? i:0};
             GameResult r = checkForWinOnRay(position, upLeft);
             if (r != null) return result = r;
         }
 
         for (int i = 0; i < WIDTH; i++) {
-            if(board[HEIGHT - 1][i] == CellState.EMPTY)
+            if(getCell(i, HEIGHT-1) == CellState.EMPTY)
                 return result = GameResult.IN_PROGRESS;
         }
 
@@ -123,7 +166,7 @@ public class Game {
     private GameResult checkForWinOnRay(int[] start, int[] direction) {
         int numConsecutive = 0;
         while (inBounds(start)){
-            CellState state = board[start[0]][start[1]];
+            CellState state = getCell(start[0], start[1]);
             numConsecutive = updateRunningCount(numConsecutive, state);
             GameResult r = fromRunningCount(numConsecutive);
             if(r != null)
@@ -139,7 +182,7 @@ public class Game {
     }
 
     private boolean inBounds(int[] pos){
-        return 0 <= pos[1] && pos[1] < WIDTH && 0 <= pos[0] && pos[0] < HEIGHT;
+        return 0 <= pos[0] && pos[0] < WIDTH && 0 <= pos[1] && pos[1] < HEIGHT;
     }
 
     private GameResult fromRunningCount(int numConsecutive) {
@@ -177,35 +220,37 @@ public class Game {
             return encoding;
 
         StringBuilder builder = new StringBuilder();
-        builder.append((isFirstPlayerMove)? 'r':'y');
-        for (int j = 0; j < WIDTH; j++){
-            CellState state = board[0][j];
-            if(state == CellState.EMPTY){
-                builder.append('x');
-                continue;
-            }
-            else if(state == CellState.RED){
-                builder.append('r');
-            }
-            else
-                builder.append('y');
-            int runningCount = 0;
-            for (int i = 0; i < HEIGHT; i++) {
-                if(state == board[i][j])
-                    runningCount++;
-                else if(board[i][j] == CellState.EMPTY){
-                    break;
-                }
-                else{
-                    state = (state == CellState.RED)? CellState.YELLOW:CellState.RED;
-                    builder.append(runningCount);
-                    runningCount = 1;
-                }
-            }
-            if(runningCount != 0)
-                builder.append(runningCount);
-
+        int numValues = 1;
+        int valueToAdd = 0;
+        if(isFirstPlayersMove()){
+            valueToAdd += ENCODED_RED;
         }
+        else{
+            valueToAdd += ENCODED_YELLOW;
+        }
+
+        for (int j = 0; j < WIDTH; j++){
+            for (int i = 0; i < HEIGHT; i++) {
+                valueToAdd = valueToAdd << 2;
+                CellState nextState = getCell(j, i);
+                if(nextState == CellState.RED){
+                    valueToAdd += ENCODED_RED;
+                }
+                else if(nextState == CellState.YELLOW){
+                    valueToAdd += ENCODED_YELLOW;
+                }
+                numValues++;
+                if(numValues == 8){
+                    numValues = 0;
+                    builder.append((char) valueToAdd);
+                    valueToAdd = 0;
+                }
+            }
+        }
+        if(numValues > 0){
+            builder.append((char) valueToAdd);
+        }
+
         return encoding = builder.toString();
     }
 
@@ -213,11 +258,12 @@ public class Game {
     public String toString(){
         StringBuilder builder = new StringBuilder();
 
-        for (int j = board.length - 1; j >=0; j--) {
-            for (int i = 0; i < board[j].length; i++) {
+        for (int j = HEIGHT - 1; j >=0; j--) {
+            for (int i = 0; i < WIDTH; i++) {
+                CellState state = getCell(i, j);
                 builder.append(
-                        (board[j][i] == CellState.EMPTY)? "x":
-                                (board[j][i] == CellState.RED)? "R":"Y"
+                        (state == CellState.EMPTY)? "x":
+                                (state == CellState.RED)? "R":"Y"
                 );
             }
             builder.append("\n");

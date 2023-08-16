@@ -22,6 +22,6 @@ public class BasicBot extends BotTemplate<Integer>{
 
     @Override
     int getMaxDepth(Game ignored) {
-        return 13;
+        return 14;
     }
 }

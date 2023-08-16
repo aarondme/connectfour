@@ -97,6 +97,7 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
             }
         }
 
+        assert bestMove != null;
         cache.put(g, bestMove.value);
         return bestMove;
     }
