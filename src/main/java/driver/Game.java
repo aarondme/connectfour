@@ -1,9 +1,9 @@
 package driver;
 
 public class Game {
-    private static final int WIN_LENGTH = 4;
-    private final int WIDTH = 7;
-    private final int HEIGHT = 6;
+    public final int WIN_LENGTH = 4;
+    public final int WIDTH = 7;
+    public final int HEIGHT = 6;
     private static final int ENCODED_YELLOW = 2;
     private static final int ENCODED_RED = 3;
     private static final int ENCODED_BLANK = 0;
