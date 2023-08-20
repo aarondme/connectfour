@@ -1,3 +1,5 @@
+package driver;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -6,7 +8,7 @@ public class BasicBot extends BotTemplate<Integer>{
     final LinkedList<Integer> ints = new LinkedList<>(Arrays.asList(3, 2, 4, 1, 5, 0, 6));
 
     @Override
-    Integer utility(Game g, int depthRemaining, int currentDepth) {
+    public Integer utility(Game g, int depthRemaining, int currentDepth) {
         GameResult result = g.getResult();
         if(result == GameResult.IN_PROGRESS || result == GameResult.DRAW)
             return 0;
@@ -17,7 +19,7 @@ public class BasicBot extends BotTemplate<Integer>{
     }
 
     @Override
-    Iterable<GameWithIndex> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic) {
+    public Iterable<GameWithIndex> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic) {
         Game next;
         ArrayList<GameWithIndex> out = new ArrayList<>();
         if(killerHeuristic >= 0){
@@ -36,7 +38,7 @@ public class BasicBot extends BotTemplate<Integer>{
     }
 
     @Override
-    int getMaxDepth(Game ignored) {
+    public int getMaxDepth(Game ignored) {
         return 17;
     }
 }

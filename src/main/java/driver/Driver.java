@@ -1,3 +1,5 @@
+package driver;
+
 public class Driver {
 
     public static void main(String[] args) {
@@ -15,7 +17,7 @@ public class Driver {
 
             Game next = g.playMove(moveIndex);
             if(next == null){
-                System.out.println("Player " + ((isFirstPlayerMove)? "1":"2") + " made an illegal move");
+                System.out.println("driver.Player " + ((isFirstPlayerMove)? "1":"2") + " made an illegal move");
                 break;
             }
             g = next;

@@ -1,3 +1,5 @@
+package driver;
+
 import java.util.Scanner;
 
 public class HumanPlayer implements Player {

@@ -1,3 +1,5 @@
+package driver;
+
 public class Game {
     private static final int WIN_LENGTH = 4;
     private final int WIDTH = 7;

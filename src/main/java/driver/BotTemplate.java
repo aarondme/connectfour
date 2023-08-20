@@ -1,9 +1,11 @@
+package driver;
+
 import java.util.Arrays;
 import java.util.HashMap;
 
 public abstract class BotTemplate<T extends Comparable<T>> implements Player {
     private record MoveWithValue<T>(T value, int index) { }
-    record GameWithIndex(Game g, int index){}
+    public record GameWithIndex(Game g, int index){}
 
     /**
      * A function to determine how good a board state is.
@@ -12,7 +14,7 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
      * @param currentDepth current depth
      * @return a measure of how good the position is. Higher = better for RED
      */
-    abstract T utility(Game g, int depthRemaining, int currentDepth);
+    public abstract T utility(Game g, int depthRemaining, int currentDepth);
 
     /**
      * @param g The initial game state
@@ -21,13 +23,13 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
      * @param killerHeuristic the result of the "killer heuristic". -1 if there is no suggestion, It is recommended to put this child first (if it exists)
      * @return The children nodes to search, must be a nonempty/non-null list with all objects included have a non-null game.
      */
-    abstract Iterable<GameWithIndex> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic);
+    public abstract Iterable<GameWithIndex> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic);
 
     /**
      * @param g game state
      * @return Max depth to search
      */
-    abstract int getMaxDepth(Game g);
+    public abstract int getMaxDepth(Game g);
 
     HashMap<Game, T> cache;
     int[] killerHeuristic;
