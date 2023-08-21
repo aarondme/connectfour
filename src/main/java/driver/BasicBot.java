@@ -19,20 +19,19 @@ public class BasicBot extends BotTemplate<Integer>{
     }
 
     @Override
-    public Iterable<GameWithIndex> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic) {
-        Game next;
-        ArrayList<GameWithIndex> out = new ArrayList<>();
-        if(killerHeuristic >= 0){
-            next = g.playMove(killerHeuristic);
+    public Iterable<Game> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic) {
+        ArrayList<Game> out = new ArrayList<>();
+        if(killerHeuristic != -1){
+            Game next = g.playMove(killerHeuristic);
             if(next != null)
-                out.add(new GameWithIndex(next, killerHeuristic));
+                out.add(next);
         }
         for (int i: ints) {
             if(i == killerHeuristic)
                 continue;
-            next = g.playMove(i);
+            Game next = g.playMove(i);
             if(next != null)
-                out.add(new GameWithIndex(next, i));
+                out.add(next);
         }
         return out;
     }
@@ -40,5 +39,15 @@ public class BasicBot extends BotTemplate<Integer>{
     @Override
     public int getMaxDepth(Game ignored) {
         return 17;
+    }
+
+    @Override
+    public Integer negativeInfinity() {
+        return Integer.MIN_VALUE;
+    }
+
+    @Override
+    public Integer positiveInfinity() {
+        return Integer.MAX_VALUE;
     }
 }

@@ -1,12 +1,11 @@
 package driver;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
 public abstract class BotTemplate<T extends Comparable<T>> implements Player {
-    private record MoveWithValue<T>(T value, int index) { }
-    public record GameWithIndex(Game g, int index){}
-
+    public record MinimaxResult<T>(Game successor, int depth, T initialAlpha, T initialBeta){}
     /**
      * A function to determine how good a board state is.
      * @param g game state
@@ -23,7 +22,7 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
      * @param killerHeuristic the result of the "killer heuristic". -1 if there is no suggestion, It is recommended to put this child first (if it exists)
      * @return The children nodes to search, must be a nonempty/non-null list with all objects included have a non-null game.
      */
-    public abstract Iterable<GameWithIndex> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic);
+    public abstract Iterable<Game> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic);
 
     /**
      * @param g game state
@@ -31,8 +30,14 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
      */
     public abstract int getMaxDepth(Game g);
 
+    public abstract T negativeInfinity();
+
+    public abstract T positiveInfinity();
+
     HashMap<Game, T> cache;
     int[] killerHeuristic;
+    ArrayList<MinimaxResult<T>> results;
+
 
     private int estimateCapacity(int bound){
         return 1 << Math.min(bound, 30);
@@ -45,51 +50,73 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
         cache = new HashMap<>(estimateCapacity(depth));
         killerHeuristic = new int[depth + 1];
         Arrays.fill(killerHeuristic, -1);
-        MoveWithValue<T> bestMove = miniMax(state, null, null, depth, 0);
-        return bestMove.index;
+        results = new ArrayList<>();
+        miniMax(state, negativeInfinity(), positiveInfinity(), depth, 0);
+        MinimaxResult<T> r = results.get(0);
+        return getIndex(state, r.successor);
     }
 
-    MoveWithValue<T> miniMax(Game g, T alpha,T beta, int maxDepth, int currentDepth){
+    private int getIndex(Game start, Game child){
+        for (int i = 0; i < start.WIDTH; i++) {
+            Game n = start.playMove(i);
+            if(n != null && n.equals(child))
+                return i;
+        }
+        return -1;
+    }
+
+    T miniMax(Game g, T alpha,T beta, int maxDepth, int currentDepth){
         if(cache.containsKey(g)){
-            return new MoveWithValue<>(cache.get(g), -1);
+            return cache.get(g);
         }
         if(maxDepth == 0 || g.isTerminal()){
             T util = utility(g, maxDepth, currentDepth);
             cache.put(g, util);
-            return new MoveWithValue<>(util, -1);
+            return util;
         }
 
-        MoveWithValue<T> bestMove = null;
+        T value;
+        Game bestNextMove = null;
+        T initialAlpha = alpha;
+        T initialBeta = beta;
         if(g.isFirstPlayersMove()){
-            for (GameWithIndex successor: successors(g, maxDepth, currentDepth, killerHeuristic[maxDepth])) {
-                MoveWithValue<T> bestNextMove = miniMax(successor.g, alpha, beta, maxDepth - 1, currentDepth + 1);
-                if(bestMove == null || bestMove.value.compareTo(bestNextMove.value) < 0)
-                    bestMove = new MoveWithValue<>(bestNextMove.value, successor.index);
-                if(alpha == null || bestMove.value.compareTo(alpha) > 0)
-                    alpha = bestMove.value;
-                if(beta != null && bestMove.value.compareTo(beta) >= 0){
-                    killerHeuristic[maxDepth] = successor.index;
+            value = negativeInfinity();
+            for (Game successor: successors(g, maxDepth, currentDepth, killerHeuristic[maxDepth])) {
+                T nextValue = miniMax(successor, alpha, beta, maxDepth - 1, currentDepth + 1);
+                if(value.compareTo(nextValue) < 0){
+                    bestNextMove = successor;
+                    value = nextValue;
+                }
+                if(value.compareTo(alpha) > 0)
+                    alpha = value;
+                if(value.compareTo(beta) >= 0){
+                    killerHeuristic[maxDepth] = getIndex(g, successor);
                     break;
                 }
 
             }
         }
         else {
-            for (GameWithIndex successor: successors(g, maxDepth, currentDepth, killerHeuristic[maxDepth])) {
-                MoveWithValue<T> bestNextMove = miniMax(successor.g, alpha, beta, maxDepth - 1, currentDepth + 1);
-                if(bestMove == null || bestMove.value.compareTo(bestNextMove.value) > 0)
-                    bestMove = new MoveWithValue<>(bestNextMove.value, successor.index);
-                if(beta == null || bestMove.value.compareTo(beta) < 0)
-                    beta= bestMove.value;
-                if(alpha != null && bestMove.value.compareTo(alpha) <= 0) {
-                    killerHeuristic[maxDepth] = successor.index;
+            value = positiveInfinity();
+            for (Game successor: successors(g, maxDepth, currentDepth, killerHeuristic[maxDepth])) {
+                T nextValue = miniMax(successor, alpha, beta, maxDepth - 1, currentDepth + 1);
+                if(value.compareTo(nextValue) > 0){
+                    bestNextMove = successor;
+                    value = nextValue;
+                }
+                if(value.compareTo(beta) < 0)
+                    beta= value;
+                if(value.compareTo(alpha) <= 0) {
+                    killerHeuristic[maxDepth] = getIndex(g, successor);
                     break;
                 }
             }
         }
 
-        assert bestMove != null;
-        cache.put(g, bestMove.value);
-        return bestMove;
+        cache.put(g, value);
+        if(currentDepth == 0){
+            results.add(new MinimaxResult<>(bestNextMove, maxDepth, initialAlpha, initialBeta));
+        }
+        return value;
     }
 }
