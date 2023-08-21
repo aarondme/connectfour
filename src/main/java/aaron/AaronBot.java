@@ -22,20 +22,20 @@ public class AaronBot extends BotTemplate<Integer> {
     }
 
     @Override
-    public Iterable<BotTemplate.GameWithIndex> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic) {
+    public Iterable<Game> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic) {
         Game next;
-        ArrayList<GameWithIndex> out = new ArrayList<>();
+        ArrayList<Game> out = new ArrayList<>();
         if(killerHeuristic >= 0){
             next = g.playMove(killerHeuristic);
             if(next != null)
-                out.add(new GameWithIndex(next, killerHeuristic));
+                out.add(next);
         }
         for (int i: ints) {
             if(i == killerHeuristic)
                 continue;
             next = g.playMove(i);
             if(next != null)
-                out.add(new GameWithIndex(next, i));
+                out.add(next);
         }
         return out;
     }
@@ -43,5 +43,15 @@ public class AaronBot extends BotTemplate<Integer> {
     @Override
     public int getMaxDepth(Game g) {
         return 16;
+    }
+
+    @Override
+    public Integer negativeInfinity() {
+        return Integer.MIN_VALUE;
+    }
+
+    @Override
+    public Integer positiveInfinity() {
+        return Integer.MAX_VALUE;
     }
 }
