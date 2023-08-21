@@ -171,7 +171,7 @@ public class Game {
         if((r = checkForWinOnRay(new int[]{0, heightToSet}, new int[]{1, 0})) != null)
             return r;
         //VERTICAL
-        if(heightToSet >= WIN_LENGTH && (r = checkForWinOnRay(new int[]{moveIndex, 0}, new int[]{0, 1})) != null)
+        if(heightToSet >= WIN_LENGTH-1 && (r = checkForWinOnRay(new int[]{moveIndex, 0}, new int[]{0, 1})) != null)
             return r;
 
         //UP RIGHT
