@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 
-public class AaronBot extends BotTemplate<Integer> {
+public class OldBot extends BotTemplate<Integer> {
     final LinkedList<Integer> ints = new LinkedList<>(Arrays.asList(3, 2, 4, 1, 5, 0, 6));
     @Override
     public Integer utility(Game g, int depthRemaining, int currentDepth) {
@@ -195,31 +195,11 @@ public class AaronBot extends BotTemplate<Integer> {
 
         //Totalling
         for (int i = 0; i < g.WIDTH; i++) {
+            int m = 0;
             for (int j = 0; j < g.HEIGHT; j++) {
-                if(g.getCell(i, j) != CellState.EMPTY)
-                    continue;
-
-                int distanceToGround = j - heights[i];
-                int shiftedDistance = g.HEIGHT - distanceToGround ;
-                if(j == 0 || yellowWeights[i][j - 1] != g.WIN_LENGTH-1){
-                    int multiplier = (j == heights[i])? 4:5;
-                    if(j > 0 && redWeights[i][j-1] == g.WIN_LENGTH - 1)
-                        multiplier *= 5;
-
-                    score += redWeights[i][j] * redWeights[i][j] * shiftedDistance * multiplier;
-                    if(redWeights[i][j] == g.WIN_LENGTH - 1 && multiplier > 5)
-                        break;
-                }
-
-                if(j == 0 || redWeights[i][j - 1] != g.WIN_LENGTH-1){
-                    int multiplier = (j == heights[i])? 4:5;
-                    if(j > 0 && yellowWeights[i][j-1] == g.WIN_LENGTH - 1)
-                        multiplier *= 5;
-                    score -= yellowWeights[i][j] * yellowWeights[i][j] * shiftedDistance * multiplier;
-                    if(yellowWeights[i][j] == g.WIN_LENGTH - 1 && multiplier > 5)
-                        break;
-                }
-
+                score += redWeights[i][j] * redWeights[i][j] * (g.HEIGHT - heights[i]) * ((redWeights[i][j] > m)? 5:2);
+                score -= yellowWeights[i][j] * yellowWeights[i][j] * (g.HEIGHT - heights[i]) * ((yellowWeights[i][j] > m)? 5:2);
+                m = Math.max(m, Math.max(redWeights[i][j], yellowWeights[i][j]));
             }
         }
         return score;
