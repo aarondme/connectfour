@@ -1,9 +1,11 @@
+import driver.BasicBot;
 import driver.CellState;
 import driver.Game;
 import driver.GameResult;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class GameTransitionTest {
     Game g = new Game(2, 4, 6);
@@ -65,5 +67,14 @@ public class GameTransitionTest {
     public void checkInProgress(){
         assertEquals(g.getResult(), GameResult.IN_PROGRESS);
         assertEquals(g.playMove(0).getResult(), GameResult.IN_PROGRESS);
+    }
+
+    @Test
+    public void minimaxSanityCheck(){
+        Game f = new Game(3, 5, 3);
+        BasicBot bot = new BasicBot();
+
+        assertEquals(bot.getMove(f), 2);
+        assertTrue(bot.miniMax(f, bot.negativeInfinity(), bot.positiveInfinity(), 9, 0) > 0);
     }
 }
