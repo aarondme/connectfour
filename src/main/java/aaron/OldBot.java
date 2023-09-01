@@ -7,10 +7,8 @@ import driver.GameResult;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 
 public class OldBot extends BotTemplate<Integer> {
-    final LinkedList<Integer> ints = new LinkedList<>(Arrays.asList(3, 2, 4, 1, 5, 0, 6));
     @Override
     public Integer utility(Game g, int depthRemaining, int currentDepth) {
         GameResult result = g.getResult();
@@ -81,9 +79,8 @@ public class OldBot extends BotTemplate<Integer> {
             int[] yellowRowWeight = new int[g.WIDTH];
             for (int j = 0; j < g.WIDTH; j++) {
                 CellState s = g.getCell(j, i);
-                if(s == CellState.EMPTY) break;
-                else if(s == CellState.RED) redCount++;
-                else yellowCount++;
+                if(s == CellState.RED) redCount++;
+                else if(s == CellState.YELLOW) yellowCount++;
 
                 if(j >= g.WIN_LENGTH){
                     s = g.getCell(j - g.WIN_LENGTH, i);
@@ -195,11 +192,32 @@ public class OldBot extends BotTemplate<Integer> {
 
         //Totalling
         for (int i = 0; i < g.WIDTH; i++) {
-            int m = 0;
             for (int j = 0; j < g.HEIGHT; j++) {
-                score += redWeights[i][j] * redWeights[i][j] * (g.HEIGHT - heights[i]) * ((redWeights[i][j] > m)? 5:2);
-                score -= yellowWeights[i][j] * yellowWeights[i][j] * (g.HEIGHT - heights[i]) * ((yellowWeights[i][j] > m)? 5:2);
-                m = Math.max(m, Math.max(redWeights[i][j], yellowWeights[i][j]));
+                if(g.getCell(i, j) != CellState.EMPTY)
+                    continue;
+
+                int distanceToGround = j - heights[i];
+                int shiftedDistance = g.HEIGHT - distanceToGround ;
+                if(j == 0 || yellowWeights[i][j - 1] != g.WIN_LENGTH-1){
+                    boolean controlsPrevious = j > 0 && redWeights[i][j-1] == g.WIN_LENGTH - 1;
+                    int multiplier = ((j == heights[i])? 4:5) *
+                            (controlsPrevious? 5:1);
+
+                    score += redWeights[i][j] * redWeights[i][j] * shiftedDistance * multiplier;
+                    if(redWeights[i][j] == g.WIN_LENGTH - 1 && controlsPrevious)
+                        break;
+                }
+
+                if(j == 0 || redWeights[i][j - 1] != g.WIN_LENGTH-1){
+                    boolean controlsPrevious = j > 0 && yellowWeights[i][j-1] == g.WIN_LENGTH - 1;
+                    int multiplier = ((j == heights[i])? 4:5) *
+                            ((controlsPrevious)? 5:1);
+
+                    score -= yellowWeights[i][j] * yellowWeights[i][j] * shiftedDistance * multiplier;
+                    if(yellowWeights[i][j] == g.WIN_LENGTH - 1 && controlsPrevious)
+                        break;
+                }
+
             }
         }
         return score;
@@ -207,17 +225,21 @@ public class OldBot extends BotTemplate<Integer> {
 
     @Override
     public Iterable<Game> successors(Game g, int depthRemaining, int currentDepth, int killerHeuristic) {
-        Game next;
         ArrayList<Game> out = new ArrayList<>();
-        if(killerHeuristic >= 0){
-            next = g.playMove(killerHeuristic);
+        if(killerHeuristic != -1){
+            Game next = g.playMove(killerHeuristic);
             if(next != null)
                 out.add(next);
         }
-        for (int i: ints) {
-            if(i == killerHeuristic)
+        int alternator = 1;
+        int columnIndex = g.WIDTH / 2;
+        for (int i = 0; i < g.WIDTH; i++) {
+            columnIndex += i * alternator;
+            alternator *= -1;
+
+            if(columnIndex == killerHeuristic)
                 continue;
-            next = g.playMove(i);
+            Game next = g.playMove(columnIndex);
             if(next != null)
                 out.add(next);
         }
