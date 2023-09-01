@@ -1,17 +1,27 @@
 package driver;
 
 public class Game {
-    public final int WIN_LENGTH = 4;
-    public final int WIDTH = 7;
-    public final int HEIGHT = 6;
+    public final int WIN_LENGTH;
+    public final int WIDTH;
+    public final int HEIGHT;
     private static final int ENCODED_YELLOW = 2;
     private static final int ENCODED_RED = 3;
     private static final int ENCODED_BLANK = 0;
     private final GameResult result;
     private final String encoding;
 
-    Game(){
+    public Game(int win_length, int width, int height){
+        result = (width > 0 || height > 0)? GameResult.IN_PROGRESS: GameResult.DRAW;
+        WIN_LENGTH = win_length;
+        WIDTH = width;
+        HEIGHT = height;
+        encoding = defaultEncoding();
+    }
+    public Game(){
         result = GameResult.IN_PROGRESS;
+        WIN_LENGTH = 4;
+        WIDTH = 7;
+        HEIGHT = 6;
         encoding = defaultEncoding();
     }
 
@@ -27,15 +37,21 @@ public class Game {
         return builder.toString();
     }
 
-    Game(Game g){
+    public Game(Game g){
         result = g.result;
         encoding = g.encoding;
+        WIN_LENGTH = g.WIN_LENGTH;
+        WIDTH = g.WIDTH;
+        HEIGHT = g.HEIGHT;
     }
 
     private Game(Game g, int moveIndex){
         int heightToSet = -1;
+        WIN_LENGTH = g.WIN_LENGTH;
+        WIDTH = g.WIDTH;
+        HEIGHT = g.HEIGHT;
         CellState s = getPlayerCell(g.isFirstPlayersMove());
-        for (int i = 0; i < HEIGHT; i++) {
+        for (int i = 0; i < g.HEIGHT; i++) {
             if(g.getCell(moveIndex, i) == CellState.EMPTY){
                 heightToSet = i;
                 break;

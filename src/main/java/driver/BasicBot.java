@@ -1,12 +1,8 @@
 package driver;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
 
 public class BasicBot extends BotTemplate<Integer>{
-    final LinkedList<Integer> ints = new LinkedList<>(Arrays.asList(3, 2, 4, 1, 5, 0, 6));
-
     @Override
     public Integer utility(Game g, int depthRemaining, int currentDepth) {
         GameResult result = g.getResult();
@@ -26,10 +22,15 @@ public class BasicBot extends BotTemplate<Integer>{
             if(next != null)
                 out.add(next);
         }
-        for (int i: ints) {
-            if(i == killerHeuristic)
+        int alternator = 1;
+        int columnIndex = g.WIDTH / 2;
+        for (int i = 0; i < g.WIDTH; i++) {
+            columnIndex += i * alternator;
+            alternator *= -1;
+
+            if(columnIndex == killerHeuristic)
                 continue;
-            Game next = g.playMove(i);
+            Game next = g.playMove(columnIndex);
             if(next != null)
                 out.add(next);
         }

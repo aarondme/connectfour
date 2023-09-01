@@ -65,7 +65,7 @@ public abstract class BotTemplate<T extends Comparable<T>> implements Player {
         return -1;
     }
 
-    T miniMax(Game g, T alpha,T beta, int maxDepth, int currentDepth){
+    public T miniMax(Game g, T alpha,T beta, int maxDepth, int currentDepth){
         if(cache.containsKey(g)){
             return cache.get(g);
         }
