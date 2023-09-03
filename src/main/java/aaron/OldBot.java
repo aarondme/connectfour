@@ -9,6 +9,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class OldBot extends BotTemplate<Integer> {
+
+    private final static int ON_GROUND = 4;
+    private final static int IN_AIR = 5;
+    private final static int PREV_CONTROL = 5;
+    private final static int NO_CONTROL = 1;
+    private final static int GOOD_PARITY = 4;
+    private final static int BAD_PARITY = 3;
+
     @Override
     public Integer utility(Game g, int depthRemaining, int currentDepth) {
         GameResult result = g.getResult();
@@ -41,7 +49,6 @@ public class OldBot extends BotTemplate<Integer> {
                 CellState s = g.getCell(i, j);
                 if(s == CellState.EMPTY){
                     heights[i] = j;
-                    break;
                 }
                 else if(s == CellState.RED) redCount++;
                 else yellowCount++;
@@ -60,6 +67,9 @@ public class OldBot extends BotTemplate<Integer> {
                             yellowColumnWeight[j - k] = Math.max(yellowColumnWeight[j - k], yellowCount);
                     }
                 }
+
+                if(s == CellState.EMPTY)
+                    break;
             }
 
             for (int j = 0; j < g.HEIGHT; j++) {
@@ -121,7 +131,7 @@ public class OldBot extends BotTemplate<Integer> {
                 else if(s == CellState.YELLOW) yellowCount++;
 
                 if(j >= g.WIN_LENGTH){
-                    s = g.getCell(position[0] + j - g.WIN_LENGTH, position[1] + j);
+                    s = g.getCell(position[0] + j - g.WIN_LENGTH, position[1] + j - g.WIN_LENGTH);
                     if(s == CellState.RED) redCount--;
                     else if(s == CellState.YELLOW) yellowCount--;
                 }
@@ -162,7 +172,7 @@ public class OldBot extends BotTemplate<Integer> {
                 else if(s == CellState.YELLOW) yellowCount++;
 
                 if(j >= g.WIN_LENGTH){
-                    s = g.getCell(position[0] - j + g.WIN_LENGTH, position[1] + j);
+                    s = g.getCell(position[0] - j + g.WIN_LENGTH, position[1] + j - g.WIN_LENGTH);
                     if(s == CellState.RED) redCount--;
                     else if(s == CellState.YELLOW) yellowCount--;
                 }
@@ -197,27 +207,34 @@ public class OldBot extends BotTemplate<Integer> {
                     continue;
 
                 int distanceToGround = j - heights[i];
-                int shiftedDistance = g.HEIGHT - distanceToGround ;
+                int shiftedDistance = g.HEIGHT - distanceToGround;
+                boolean shouldBreak = redWeights[i][j] == g.WIN_LENGTH - 1 && yellowWeights[i][j] == g.WIN_LENGTH - 1;
                 if(j == 0 || yellowWeights[i][j - 1] != g.WIN_LENGTH-1){
                     boolean controlsPrevious = j > 0 && redWeights[i][j-1] == g.WIN_LENGTH - 1;
-                    int multiplier = ((j == heights[i])? 4:5) *
-                            (controlsPrevious? 5:1);
+                    boolean parityMatters = (g.HEIGHT&1) == 0 && (j&1)==0;
+                    int multiplier = ((j == heights[i])? ON_GROUND:IN_AIR) *
+                            (controlsPrevious? PREV_CONTROL:NO_CONTROL) *
+                            (parityMatters? GOOD_PARITY:BAD_PARITY);
 
                     score += redWeights[i][j] * redWeights[i][j] * shiftedDistance * multiplier;
                     if(redWeights[i][j] == g.WIN_LENGTH - 1 && controlsPrevious)
-                        break;
+                        shouldBreak = true;
                 }
 
                 if(j == 0 || redWeights[i][j - 1] != g.WIN_LENGTH-1){
                     boolean controlsPrevious = j > 0 && yellowWeights[i][j-1] == g.WIN_LENGTH - 1;
-                    int multiplier = ((j == heights[i])? 4:5) *
-                            ((controlsPrevious)? 5:1);
+                    boolean parityMatters = (g.HEIGHT&1) == 0 && (j&1)==1;
+                    int multiplier = ((j == heights[i])? ON_GROUND:IN_AIR) *
+                            ((controlsPrevious)? PREV_CONTROL:NO_CONTROL) *
+                            (parityMatters? GOOD_PARITY:BAD_PARITY);
 
                     score -= yellowWeights[i][j] * yellowWeights[i][j] * shiftedDistance * multiplier;
                     if(yellowWeights[i][j] == g.WIN_LENGTH - 1 && controlsPrevious)
-                        break;
+                        shouldBreak = true;
                 }
 
+                if(shouldBreak)
+                    break;
             }
         }
         return score;
