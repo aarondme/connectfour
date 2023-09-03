@@ -1,15 +1,16 @@
 package driver;
 
+import aaron.AaronBot;
+
 public class Driver {
 
     public static void main(String[] args) {
         Player playerOne = new BasicBot();
-        Player playerTwo = new HumanPlayer();
+        Player playerTwo = new AaronBot();
         Game g = new Game();
 
-
-        playGame(playerOne, playerTwo, g);
-//        runBotTest(playerOne, playerTwo, g);
+//        playGame(playerOne, playerTwo, g);
+        runBotTest(playerOne, playerTwo, g);
     }
 
     private static void runBotTest(Player playerOne, Player playerTwo, Game g) {
@@ -19,12 +20,14 @@ public class Driver {
 
         for (int i = -1; i < g.WIDTH; i++) {
             Game n = (i == -1)? g : g.playMove(i);
+            System.out.println("Initial i: " + i + ", players same");
 
             GameResult r = playGame(playerOne, playerTwo, n);
             if(r == GameResult.DRAW) draw++;
             else if(r == GameResult.RED_WIN) p1Win++;
             else p1Loss++;
 
+            System.out.println("Initial i: " + i + ", players swapped");
             GameResult s = playGame(playerTwo, playerTwo, n);
             if(s == GameResult.DRAW) draw++;
             else if(s == GameResult.YELLOW_WIN) p1Win++;
@@ -42,7 +45,7 @@ public class Driver {
                 moveIndex = playerOne.getMove(new Game(g));
             else
                 moveIndex = playerTwo.getMove(new Game(g));
-
+            System.out.print(moveIndex + (isFirstPlayerMove? ".":"/"));
             Game next = g.playMove(moveIndex);
             if(next == null){
                 System.out.println("Player " + ((isFirstPlayerMove)? "1":"2") + " made an illegal move");
@@ -50,6 +53,7 @@ public class Driver {
             }
             g = next;
         }
+        System.out.print('\n');
         System.out.println(g);
         return g.getResult();
     }
