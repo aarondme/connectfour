@@ -274,7 +274,11 @@ public class Game {
             }
             builder.append("\n");
         }
-        builder.append("Player ").append(isFirstPlayersMove() ? "RED" : "YELLOW").append( " to move\n");
+
+        if(isTerminal())
+            builder.append(getResult()).append("\n");
+        else
+            builder.append("Player ").append(isFirstPlayersMove() ? "RED" : "YELLOW").append( " to move\n");
         return builder.toString();
     }
 }
