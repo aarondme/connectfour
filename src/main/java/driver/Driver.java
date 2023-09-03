@@ -20,21 +20,21 @@ public class Driver {
 
         for (int i = -1; i < g.WIDTH; i++) {
             Game n = (i == -1)? g : g.playMove(i);
-            System.out.println("Initial i: " + i + ", players same");
+            System.out.println("Initial i: " + i + ", Player One: RED");
 
             GameResult r = playGame(playerOne, playerTwo, n);
             if(r == GameResult.DRAW) draw++;
             else if(r == GameResult.RED_WIN) p1Win++;
             else p1Loss++;
 
-            System.out.println("Initial i: " + i + ", players swapped");
+            System.out.println("Initial i: " + i + ", Player Two: Red");
             GameResult s = playGame(playerTwo, playerTwo, n);
             if(s == GameResult.DRAW) draw++;
             else if(s == GameResult.YELLOW_WIN) p1Win++;
             else p1Loss++;
         }
 
-        System.out.println("RECORD: " + p1Win + "-" + draw + "-" + p1Loss);
+        System.out.println("Player One Record: " + p1Win + "-" + draw + "-" + p1Loss);
     }
 
     private static GameResult playGame(Player playerOne, Player playerTwo, Game g) {
