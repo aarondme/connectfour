@@ -41,7 +41,6 @@ public class AaronBot extends BotTemplate<Integer> {
                 CellState s = g.getCell(i, j);
                 if(s == CellState.EMPTY){
                     heights[i] = j;
-                    break;
                 }
                 else if(s == CellState.RED) redCount++;
                 else yellowCount++;
@@ -60,6 +59,9 @@ public class AaronBot extends BotTemplate<Integer> {
                             yellowColumnWeight[j - k] = Math.max(yellowColumnWeight[j - k], yellowCount);
                     }
                 }
+
+                if(s == CellState.EMPTY)
+                    break;
             }
 
             for (int j = 0; j < g.HEIGHT; j++) {
@@ -121,7 +123,7 @@ public class AaronBot extends BotTemplate<Integer> {
                 else if(s == CellState.YELLOW) yellowCount++;
 
                 if(j >= g.WIN_LENGTH){
-                    s = g.getCell(position[0] + j - g.WIN_LENGTH, position[1] + j);
+                    s = g.getCell(position[0] + j - g.WIN_LENGTH, position[1] + j - g.WIN_LENGTH);
                     if(s == CellState.RED) redCount--;
                     else if(s == CellState.YELLOW) yellowCount--;
                 }
@@ -162,7 +164,7 @@ public class AaronBot extends BotTemplate<Integer> {
                 else if(s == CellState.YELLOW) yellowCount++;
 
                 if(j >= g.WIN_LENGTH){
-                    s = g.getCell(position[0] - j + g.WIN_LENGTH, position[1] + j);
+                    s = g.getCell(position[0] - j + g.WIN_LENGTH, position[1] + j - g.WIN_LENGTH);
                     if(s == CellState.RED) redCount--;
                     else if(s == CellState.YELLOW) yellowCount--;
                 }
@@ -221,7 +223,6 @@ public class AaronBot extends BotTemplate<Integer> {
                     if(yellowWeights[i][j] == g.WIN_LENGTH - 1 && controlsPrevious)
                         break;
                 }
-
             }
         }
         return score;
