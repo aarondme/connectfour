@@ -4,9 +4,7 @@ public class Game {
     public final int WIN_LENGTH;
     public final int WIDTH;
     public final int HEIGHT;
-    private static final int ENCODED_YELLOW = 2;
-    private static final int ENCODED_RED = 3;
-    private static final int ENCODED_BLANK = 0;
+    private final boolean isRedTurn;
     private final GameResult result;
     private final String encoding;
 
@@ -15,6 +13,7 @@ public class Game {
         WIN_LENGTH = win_length;
         WIDTH = width;
         HEIGHT = height;
+        isRedTurn = true;
         encoding = defaultEncoding();
     }
     public Game(){
@@ -22,19 +21,20 @@ public class Game {
         WIN_LENGTH = 4;
         WIDTH = 7;
         HEIGHT = 6;
+        isRedTurn = true;
         encoding = defaultEncoding();
     }
 
     private String defaultEncoding() {
-        StringBuilder builder = new StringBuilder();
-        int first = ENCODED_RED << 14;
-        builder.append((char) first);
-        int numCells = WIDTH * HEIGHT - 7;
-        while (numCells > 0){
-            builder.append((char) 0);
-            numCells -= 8;
+        if(HEIGHT < 8){
+            StringBuilder builder = new StringBuilder();
+            builder.append(String.valueOf((char) (0x0101)).repeat(WIDTH / 2));
+            if((WIDTH & 1) == 1)
+                builder.append((char) 0x0100);
+
+            return builder.toString();
         }
-        return builder.toString();
+        return null; //will do when/if necessary.
     }
 
     public Game(Game g){
@@ -43,25 +43,20 @@ public class Game {
         WIN_LENGTH = g.WIN_LENGTH;
         WIDTH = g.WIDTH;
         HEIGHT = g.HEIGHT;
+        isRedTurn = g.isRedTurn;
     }
 
     private Game(Game g, int moveIndex){
-        int heightToSet = -1;
+        int heightToSet = g.getNumTokens(moveIndex);
         WIN_LENGTH = g.WIN_LENGTH;
         WIDTH = g.WIDTH;
         HEIGHT = g.HEIGHT;
         CellState s = getPlayerCell(g.isFirstPlayersMove());
-        for (int i = 0; i < g.HEIGHT; i++) {
-            if(g.getCell(moveIndex, i) == CellState.EMPTY){
-                heightToSet = i;
-                break;
-            }
-        }
         String tempEncoding = g.encoding;
         tempEncoding = setCell(moveIndex, heightToSet, s, tempEncoding);
-        tempEncoding = flipTurn(tempEncoding);
         encoding = tempEncoding;
         result = checkForWinInvolving(moveIndex, heightToSet);
+        isRedTurn = !g.isRedTurn;
     }
 
     public boolean isTerminal() {
@@ -69,8 +64,24 @@ public class Game {
     }
 
     public boolean isFirstPlayersMove() {
-        int first = encoding.charAt(0);
-        return (first & (1 << 14)) > 0;
+        return isRedTurn;
+    }
+
+    public int getNumTokens(int column){
+        int charIndex = column >> 1; //Get character in which the cell is stored
+        int c = encoding.charAt(charIndex);
+        if((column & 1) == 0){
+            c = (c & 0xFF00) >> 8;
+        }
+        else{
+            c = c & 0xFF;
+        }
+        int out = 0;
+        while (c > 1){
+            c = c >> 1;
+            out++;
+        }
+        return out;
     }
 
     public Game playMove(int moveIndex) {
@@ -81,50 +92,47 @@ public class Game {
         if(getCell(moveIndex, HEIGHT-1) != CellState.EMPTY)
             return null;
 
-       return new Game(this, moveIndex);
+        return new Game(this, moveIndex);
     }
+
 
     /**
      * Gets the cell at (x, y) where (0, 0) is the bottom left corner
      * **/
     public CellState getCell(int x, int y){
-        int index = toBitmaskIndex(x, y);
-        int charIndex = index >> 3; //Get character in which the cell is stored
-        int indexInChar = index & 0b111; //Get the index in the character where the cell is stored
-        int shiftAmount = (7 - indexInChar) << 1;
+        int charIndex = x >> 1; //Get character in which the cell is stored
         int c = encoding.charAt(charIndex);
-        c = (c >> shiftAmount) & 0b11; //Shift the indices to the 0th and 1st bits, and extract them
-        if(c == ENCODED_YELLOW)
+        if((x & 1) == 0){
+            c = (c & 0xFF00) >> 8;
+        }
+        else{
+            c = c & 0xFF;
+        }
+
+        int bitToCheck = 1 << y;
+        if((bitToCheck << 1) > c)
+            return CellState.EMPTY;
+        if((bitToCheck & c) == 0)
             return CellState.YELLOW;
-        else if(c == ENCODED_RED)
-            return CellState.RED;
-        return CellState.EMPTY;
+        return  CellState.RED;
     }
 
+    //Assumes y is the cell at the top of the column; state is either red or yellow
     private String setCell(int x, int y, CellState state, String prevMask){
-        int index = toBitmaskIndex(x, y);
-        int charIndex = index >> 3; //Get character in which the cell is stored
-        int indexInChar = index & 0b111; //Get the index in the character where the cell is stored
+        int charIndex = x >> 1; //Get character in which the cell is stored
         int c = prevMask.charAt(charIndex);
-        int shiftAmount = (7 - indexInChar) << 1;
-        c = (0b11 << shiftAmount) | c; //Set the corresponding indices to 0b11
-        int valToSet = (state == CellState.EMPTY)? ENCODED_BLANK: (state == CellState.RED)? ENCODED_RED:ENCODED_YELLOW;
-        valToSet = valToSet ^ 0b11;
-        c = (valToSet << shiftAmount) ^ c; //XOR with the opposite of the values we want to set it to.
+
+        int valToSet = 0b10 + ((state == CellState.RED)? 0:1); //Last bit is flipped to make XOR work nicely
+        if((x & 1) == 0)
+            valToSet = valToSet << 8;
+
+        valToSet = valToSet << y;
+        c = c ^ valToSet;
+
 
         return prevMask.substring(0, charIndex) +
                 (char) c +
                 prevMask.substring(charIndex + 1);
-    }
-
-    private String flipTurn(String prevMask){
-        int c = prevMask.charAt(0);
-        c = (1 << 14) ^ c;
-        return (char) c + prevMask.substring(1);
-    }
-
-    private int toBitmaskIndex(int x, int y){
-        return x * HEIGHT + y + 1;
     }
 
     private CellState getPlayerCell(boolean isFirstPlayerMove) {
